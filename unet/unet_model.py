@@ -1,22 +1,6 @@
 from unet.unet_parts import *
 from torchvision import models
-class fix_seg(nn.Module):
-    def __init__(self):
-        super(fix_seg, self).__init__()
-        self.conv0=nn.Conv2d(1,8,3,1,1,bias=False)
-        self.conv0.weight = nn.Parameter(torch.tensor([[[[0,0, 0], [1, 0, 0], [0, 0, 0]]],
-                                                       [[[1,0, 0], [0, 0, 0], [0, 0, 0]]],
-                                                       [[[0,1, 0], [0, 0, 0], [0, 0, 0]]],
-                                                       [[[0,0, 1], [0, 0, 0], [0, 0, 0]]],
-                                                       [[[0,0, 0], [0, 0, 1], [0, 0, 0]]],
-                                                       [[[0,0, 0], [0, 0, 0], [0, 0, 1]]],
-                                                       [[[0,0, 0], [0, 0, 0], [0, 1, 0]]],
-                                                       [[[0,0, 0], [0, 0, 0], [1, 0, 0]]]]).float())
-    def forward(self,direc_pred,masks_pred,edge_pred):
-        direc_pred=direc_pred.softmax(1)
-        edge_mask=1*(torch.sigmoid(edge_pred).detach()>0.5)
-        refined_mask_pred=(self.conv0(masks_pred)*direc_pred).sum(1).unsqueeze(1)*edge_mask+masks_pred*(1-edge_mask)
-        return refined_mask_pred
+
 class CBRNet(nn.Module):
     def __init__(self):
         super(CBRNet, self).__init__()
@@ -47,16 +31,7 @@ class CBRNet(nn.Module):
         self.classifier5=nn.Sequential(nn.Conv2d(64+1,64,1,1),nn.BatchNorm2d(64),nn.ReLU(),nn.Conv2d(64,1,1,1))
         self.classifier5_2=nn.Sequential(nn.Conv2d(64,64,1,1),nn.BatchNorm2d(64),nn.ReLU(),nn.Conv2d(64,1,1,1))
         self.interpo=nn.Upsample(scale_factor=2, mode='bilinear')
-        self.outc = OutConv(state[0], 1)
-        self.dir_head = nn.Sequential(
-            nn.Conv2d(64,
-                      32,
-                      kernel_size=1,
-                      stride=1,
-                      bias=False),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32,8, kernel_size=1,stride=1,padding=0,bias=False))
+
         self.fixer=fix_seg()
     def forward(self, x,gts=None):
         x1 = self.inc(x)
@@ -81,11 +56,7 @@ class CBRNet(nn.Module):
         r_x=self.fixer(direction,seg1,edge1)
         if gts is not None:
             true_masks,edge_masks,dir_masks=gts['mask'],gts['edge'],gts['direction']
-            loss=self.bcecriterion(r_x.squeeze(), true_masks.squeeze().float())+ \
-                  self.bcecriterion(seg1.squeeze(), true_masks.squeeze().float())+ \
-                  self.edgecriterion(edge1.squeeze(), edge_masks.squeeze().float())+ \
-                  self.cecriterion(direction,dir_masks.long())+ \
-                  0.25*self.bcecriterion(seg2.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(256,256)).squeeze().float())+ \
+            loss=0.25*self.bcecriterion(seg2.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(256,256)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg3.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(128,128)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg4.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(64,64)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg5.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(32,32)).squeeze().float())+ \
