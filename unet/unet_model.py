@@ -1,6 +1,22 @@
 from unet.unet_parts import *
 from torchvision import models
-
+class fix_seg(nn.Module):
+    def __init__(self):
+        super(fix_seg, self).__init__()
+        self.conv0=nn.Conv2d(1,8,3,1,1,bias=False)
+        self.conv0.weight = nn.Parameter(torch.tensor([[[[0,0, 0], [1, 0, 0], [0, 0, 0]]],
+                                                       [[[1,0, 0], [0, 0, 0], [0, 0, 0]]],
+                                                       [[[0,1, 0], [0, 0, 0], [0, 0, 0]]],
+                                                       [[[0,0, 1], [0, 0, 0], [0, 0, 0]]],
+                                                       [[[0,0, 0], [0, 0, 1], [0, 0, 0]]],
+                                                       [[[0,0, 0], [0, 0, 0], [0, 0, 1]]],
+                                                       [[[0,0, 0], [0, 0, 0], [0, 1, 0]]],
+                                                       [[[0,0, 0], [0, 0, 0], [1, 0, 0]]]]).float())
+    def forward(self,direc_pred,masks_pred,edge_pred):
+        direc_pred=direc_pred.softmax(1)
+        edge_mask=1*(torch.sigmoid(edge_pred).detach()>0.5)
+        refined_mask_pred=(self.conv0(masks_pred)*direc_pred).sum(1).unsqueeze(1)*edge_mask+masks_pred*(1-edge_mask)
+        return refined_mask_pred
 class CBRNet(nn.Module):
     def __init__(self):
         super(CBRNet, self).__init__()
