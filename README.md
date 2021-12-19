@@ -1,7 +1,6 @@
 # CBRNet
 ## A Coarse-to-fine Boundary Refinement Network for Building Extraction from Remote Sensing Imagery
 
-!!!The paper is in the peer preview process.
 
 Dataset
 ----
