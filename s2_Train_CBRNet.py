@@ -15,7 +15,7 @@ from utils.sync_batchnorm.batchnorm import convert_model
 from unet.unet_model import CBRNet
 lr=1e-3
 batchsize=8
-epochs=99999
+epochs=150
 num_workers=24
 read_name=''
 save_name='CBR_Inria'
