@@ -70,20 +70,4 @@ class CBRNet(nn.Module):
         seg1=self.classifier5(torch.cat((x,self.interpo(seg2)),1))
         direction=self.dir_head(x)
         r_x=self.fixer(direction,seg1,edge1)
-        if gts is not None:
-            true_masks,edge_masks,dir_masks=gts['mask'],gts['edge'],gts['direction']
-            loss =self.bcecriterion(seg1.squeeze(), torch.sigmoid(r_x).squeeze().float())+ \
-                  self.bcecriterion(r_x.squeeze(), true_masks.squeeze().float())+ \
-                  self.bcecriterion(seg1.squeeze(), true_masks.squeeze().float())+ \
-                  self.edgecriterion(edge1.squeeze(), edge_masks.squeeze().float())+ \
-                  self.cecriterion(direction,dir_masks.long())+ \
-                  0.25*self.bcecriterion(seg2.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(256,256)).squeeze().float())+ \
-                  0.25*self.bcecriterion(seg3.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(128,128)).squeeze().float())+ \
-                  0.25*self.bcecriterion(seg4.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(64,64)).squeeze().float())+ \
-                  0.25*self.bcecriterion(seg5.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(32,32)).squeeze().float())+ \
-                  0.25*self.edgecriterion(edge2.squeeze(), F.interpolate(edge_masks.unsqueeze(1),mode='bilinear',size=(256,256)).squeeze().float())+ \
-                  0.25*self.edgecriterion(edge3.squeeze(), F.interpolate(edge_masks.unsqueeze(1),mode='bilinear',size=(128,128)).squeeze().float())+ \
-                  0.25*self.edgecriterion(edge4.squeeze(), F.interpolate(edge_masks.unsqueeze(1),mode='bilinear',size=(64,64)).squeeze().float())
-            return loss,[r_x,seg1,seg2,seg3,seg4,seg5,edge1,edge2,edge3,edge4,direction]
-        else:
-            return r_x,seg1,seg2,seg3,seg4,seg5,edge1,edge2,edge3,edge4,direction
+        return r_x,seg1,seg2,seg3,seg4,seg5,edge1,edge2,edge3,edge4,direction
