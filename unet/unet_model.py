@@ -47,7 +47,7 @@ class CBRNet(nn.Module):
         self.classifier5=nn.Sequential(nn.Conv2d(64+1,64,1,1),nn.BatchNorm2d(64),nn.ReLU(),nn.Conv2d(64,1,1,1))
         self.classifier5_2=nn.Sequential(nn.Conv2d(64,64,1,1),nn.BatchNorm2d(64),nn.ReLU(),nn.Conv2d(64,1,1,1))
         self.interpo=nn.Upsample(scale_factor=2, mode='bilinear')
-
+        self.dir_head = nn.Sequential(nn.Conv2d(64,64,1,1),nn.BatchNorm2d(64),nn.ReLU(),nn.Conv2d(64,8,1,1))
         self.fixer=fix_seg()
     def forward(self, x,gts=None):
         x1 = self.inc(x)
@@ -72,7 +72,12 @@ class CBRNet(nn.Module):
         r_x=self.fixer(direction,seg1,edge1)
         if gts is not None:
             true_masks,edge_masks,dir_masks=gts['mask'],gts['edge'],gts['direction']
-            loss=0.25*self.bcecriterion(seg2.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(256,256)).squeeze().float())+ \
+            loss =self.bcecriterion(seg1.squeeze(), torch.sigmoid(r_x).squeeze().float())+ \
+                  self.bcecriterion(r_x.squeeze(), true_masks.squeeze().float())+ \
+                  self.bcecriterion(seg1.squeeze(), true_masks.squeeze().float())+ \
+                  self.edgecriterion(edge1.squeeze(), edge_masks.squeeze().float())+ \
+                  self.cecriterion(direction,dir_masks.long())+ \
+                  0.25*self.bcecriterion(seg2.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(256,256)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg3.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(128,128)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg4.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(64,64)).squeeze().float())+ \
                   0.25*self.bcecriterion(seg5.squeeze(), F.interpolate(true_masks,mode='bilinear',size=(32,32)).squeeze().float())+ \
