@@ -75,7 +75,7 @@ def train_net(net,
                 edge_masks = (dis_masks<5).to(device=device).float()
                 dir_masks[edge_masks==0]=-1
                 remasks_pred,masks_pred,pred2,pred3,pred4,pred5,edge1,edge2,edge3,edge4,direction = net(imgs)
-                loss =bcecriterion(true_masks.squeeze(), torch.sigmoid(remasks_pred).squeeze().float())+ \
+                loss =bcecriterion(masks_pred.squeeze(), torch.sigmoid(remasks_pred).squeeze().float())+ \
                       bcecriterion(remasks_pred.squeeze(), true_masks.squeeze().float())+ \
                       bcecriterion(masks_pred.squeeze(), true_masks.squeeze().float())+ \
                       edgecriterion(edge1.squeeze(), edge_masks.squeeze().float())+ \
